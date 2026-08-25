@@ -20,6 +20,10 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Viciform\Laravel\ViciformFacade as Viciform;
+use Viciform\Laravel\WebformLead;
+use Viciform\Laravel\Dialer;
+use Viciform\Laravel\Center;
+use Viciform\Laravel\Recording;
 use Viciform\Webform\ParameterBridge;
 
 class ParameterWebformController
@@ -31,23 +35,15 @@ class ParameterWebformController
     {
         $payload = Viciform::webform($request);
 
-        // Same logic as:
-        //   DialerList::where('dialer_ip', $server_ip)->value('dialer_no')
-        //   CenterList::where('centerCode', $closercode)->value('centerName')
         $view = ParameterBridge::forDisplay($payload, [
             'currentDateTime' => now(),
             // 'verifiers' => User::where('type', 'Closer')->get(),
             'dialer_resolver' => function ($serverIp) {
-                // return DialerList::where('dialer_ip', $serverIp)->value('dialer_no');
-                return null;
+                return Dialer::matchNo($serverIp);
             },
             'center_resolver' => function ($closerCode) {
-                // return CenterList::where('centerCode', $closerCode)->value('centerName');
-                return null;
+                return Center::matchName($closerCode);
             },
-            // Or static maps:
-            // 'dialer_map' => ['10.0.0.5' => 'D1'],
-            // 'center_map' => ['clo' => 'Main Center'],
         ]);
 
         return view('display', $view);
@@ -63,21 +59,37 @@ class ParameterWebformController
         $view = ParameterBridge::forDisplay($payload, [
             // 'agents' => User::where('type', 'avatar')->pluck('name', 'id'),
             // 'verifiers' => User::where('type', 'Closer')->get(),
+            'dialer_resolver' => function ($serverIp) {
+                return Dialer::matchNo($serverIp);
+            },
+            'center_resolver' => function ($closerCode) {
+                return Center::matchName($closerCode);
+            },
         ]);
 
         return view('display', $view);
     }
 
     /**
-     * ParameterController::store equivalent — map onto your model.
+     * ParameterController::store equivalent — uses viciform_webform_leads migration.
      */
     public function store(Request $request)
     {
         $payload = Viciform::webform($request);
         $data = ParameterBridge::forStore($payload);
+        $data['extras'] = $payload->extras();
 
-        // AvatarLead::create($data);
-        // $lead->recordingLink = $data['recordingLink'];
+        $lead = WebformLead::fromWebform($data);
+
+        if (!empty($data['recording_link'])) {
+            Recording::create([
+                'webform_lead_id' => $lead->id,
+                'recording_filename' => $data['recording_filename'] ?? null,
+                'recording_id' => $data['recording_id'] ?? null,
+                'recording_link' => $data['recording_link'],
+                'status' => 'saved',
+            ]);
+        }
 
         return redirect()
             ->route('display', ['lead_id' => $payload->leadId()])

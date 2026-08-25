@@ -20,12 +20,13 @@ class InstallCommand extends Command
                             {--source= : API source label}
                             {--phone-code= : Default phone country code}
                             {--duplicate-check= : Duplicate check mode}
+                            {--migrations : Also publish webform / dialer / center migrations}
                             {--force : Overwrite existing .env Viciform keys}';
 
     /**
      * @var string
      */
-    protected $description = 'Auto-setup Viciform: publish config and write .env settings';
+    protected $description = 'Auto-setup Viciform: publish config, optional migrations, and write .env settings';
 
     /**
      * @return int
@@ -37,6 +38,10 @@ class InstallCommand extends Command
         $this->line('');
 
         $this->publishConfig();
+
+        if ($this->option('migrations')) {
+            $this->publishMigrations();
+        }
 
         $env = new EnvWriter($this->laravel->basePath('.env'));
         $example = new EnvWriter($this->laravel->basePath('.env.example'));
@@ -89,8 +94,32 @@ class InstallCommand extends Command
         $this->line('  php artisan viciform:configure   # interactive wizard');
         $this->line('  php artisan viciform:status      # show current config');
         $this->line('  php artisan viciform:test        # test Vicidial API');
+        if ($this->option('migrations')) {
+            $this->line('  php artisan migrate              # create viciform_* tables');
+        } else {
+            $this->line('  php artisan viciform:install --migrations  # publish DB migrations');
+            $this->line('  php artisan migrate              # or migrate (package auto-loads them)');
+        }
 
         return 0;
+    }
+
+    /**
+     * @return void
+     */
+    private function publishMigrations()
+    {
+        try {
+            $this->call('vendor:publish', [
+                '--provider' => 'Viciform\\Laravel\\ViciformServiceProvider',
+                '--tag' => 'viciform-migrations',
+                '--force' => (bool) $this->option('force'),
+            ]);
+            $this->info('Published Viciform migrations to database/migrations');
+        } catch (\Throwable $e) {
+            $this->warn('Could not publish migrations via vendor:publish: ' . $e->getMessage());
+            $this->comment('They still load automatically from the package on migrate.');
+        }
     }
 
     /**

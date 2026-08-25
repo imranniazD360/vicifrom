@@ -53,6 +53,12 @@ class ViciformServiceProvider extends ServiceProvider
                 __DIR__ . '/stubs/env.viciform.stub' => $this->app->basePath('viciform.env.example'),
             ], 'viciform-env');
 
+            $this->publishes([
+                __DIR__ . '/migrations/' => $this->app->databasePath('migrations'),
+            ], 'viciform-migrations');
+
+            $this->loadMigrationsFrom(__DIR__ . '/migrations');
+
             $this->commands([
                 InstallCommand::class,
                 ConfigureCommand::class,

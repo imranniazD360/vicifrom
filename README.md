@@ -60,35 +60,47 @@ One-call replacement for the long `ParameterController::display` / `store` input
 
 ```php
 use Viciform\Laravel\ViciformFacade as Viciform;
+use Viciform\Laravel\Dialer;
+use Viciform\Laravel\Center;
+use Viciform\Laravel\WebformLead;
 
 public function display(Request $request)
 {
     return view('display', Viciform::display($request, [
-        'verifiers' => User::where('type', 'Closer')->get(),
-        'dialer_resolver' => function ($ip) {
-            return DialerList::where('dialer_ip', $ip)->value('dialer_no');
-        },
-        'center_resolver' => function ($code) {
-            return CenterList::where('centerCode', $code)->value('centerName');
-        },
+        'dialer_resolver' => fn ($ip) => Dialer::matchNo($ip),
+        'center_resolver' => fn ($code) => Center::matchName($code),
     ]));
 }
 
 public function store(Request $request)
 {
     $data = Viciform::storeAttributes($request);
-    // AvatarLead::create($data);  // includes recordingLink
+    WebformLead::fromWebform($data);
 }
 ```
 
-Or with static maps:
+### Laravel migrations (Parameter / Avatar tables)
 
-```php
-Viciform::display($request, [
-    'dialer_map' => ['10.0.0.5' => 'D1'],
-    'center_map' => ['clo' => 'Main Center'],
-]);
+```bash
+php artisan viciform:install --migrations
+# or
+php artisan vendor:publish --tag=viciform-migrations
+
+php artisan migrate
 ```
+
+Creates:
+
+| Table | Purpose |
+|-------|---------|
+| `viciform_dialers` | Dialer IP → dialer_no (CRM `dialerlist_tb`) |
+| `viciform_centers` | Closer code → center name (CRM `centerlist_tb`) |
+| `viciform_recordings` | Recording URLs |
+| `viciform_webform_leads` | Full Vicidial script + xfer fields (CRM `avatar_temp_leads` / `avatar_leads`) |
+
+Migrations also auto-load from the package on `php artisan migrate` (no publish required).
+
+Models: `Viciform\Laravel\Dialer`, `Center`, `Recording`, `WebformLead`.
 
 See `examples/parameter-webform-controller.php`, `examples/avatar-webform-controller.php`, and `examples/avatar-webform-plain.php`.
 
