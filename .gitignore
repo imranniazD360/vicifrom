@@ -1,0 +1,10 @@
+/.idea/
+/.vscode/
+/vendor/
+/composer.lock
+/.phpunit.cache/
+/phpunit.xml.bak
+*.swp
+*.swo
+.env
+.env.local

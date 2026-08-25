@@ -1,0 +1,57 @@
+{
+    "name": "viciform/viciform",
+    "description": "Send webform leads to Vicidial via Non-Agent API. Works with Laravel and plain PHP.",
+    "type": "library",
+    "license": "MIT",
+    "keywords": [
+        "vicidial",
+        "webform",
+        "leads",
+        "laravel",
+        "php",
+        "call-center",
+        "add_lead"
+    ],
+    "authors": [
+        {
+            "name": "Viciform",
+            "homepage": "https://github.com/imranniaz-st/viciform"
+        }
+    ],
+    "require": {
+        "php": ">=7.2",
+        "ext-curl": "*",
+        "ext-json": "*"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^8.5|^9.6|^10.5|^11.0"
+    },
+    "suggest": {
+        "illuminate/support": "Required for Laravel service provider and facade (Laravel 5.8+ / 6 / 7 / 8 / 9 / 10 / 11 / 12)"
+    },
+    "autoload": {
+        "psr-4": {
+            "Viciform\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Viciform\\Tests\\": "tests/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Viciform\\Laravel\\ViciformServiceProvider"
+            ],
+            "aliases": {
+                "Viciform": "Viciform\\Laravel\\ViciformFacade"
+            }
+        }
+    },
+    "scripts": {
+        "test": "phpunit"
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}
