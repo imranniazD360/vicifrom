@@ -54,7 +54,43 @@ public function create(Request $request)
 }
 ```
 
-See `examples/avatar-webform-controller.php` and `examples/avatar-webform-plain.php`.
+### ParameterController pattern (`display` / `store`)
+
+One-call replacement for the long `ParameterController::display` / `store` input lists, including dialer + center matching:
+
+```php
+use Viciform\Laravel\ViciformFacade as Viciform;
+
+public function display(Request $request)
+{
+    return view('display', Viciform::display($request, [
+        'verifiers' => User::where('type', 'Closer')->get(),
+        'dialer_resolver' => function ($ip) {
+            return DialerList::where('dialer_ip', $ip)->value('dialer_no');
+        },
+        'center_resolver' => function ($code) {
+            return CenterList::where('centerCode', $code)->value('centerName');
+        },
+    ]));
+}
+
+public function store(Request $request)
+{
+    $data = Viciform::storeAttributes($request);
+    // AvatarLead::create($data);  // includes recordingLink
+}
+```
+
+Or with static maps:
+
+```php
+Viciform::display($request, [
+    'dialer_map' => ['10.0.0.5' => 'D1'],
+    'center_map' => ['clo' => 'Main Center'],
+]);
+```
+
+See `examples/parameter-webform-controller.php`, `examples/avatar-webform-controller.php`, and `examples/avatar-webform-plain.php`.
 
 ### Vicidial script URL example
 

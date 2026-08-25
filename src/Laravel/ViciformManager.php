@@ -8,6 +8,7 @@ use Viciform\Client;
 use Viciform\Lead;
 use Viciform\Response;
 use Viciform\Viciform;
+use Viciform\Webform\ParameterBridge;
 use Viciform\Webform\ScriptPayload;
 
 /**
@@ -76,5 +77,28 @@ class ViciformManager
     public function webform($request = null)
     {
         return Viciform::webform($request);
+    }
+
+    /**
+     * ParameterController::display view bag.
+     *
+     * @param mixed $request
+     * @param array $options
+     * @return array<string, mixed>
+     */
+    public function display($request = null, array $options = [])
+    {
+        return ParameterBridge::forDisplay($this->webform($request), $options);
+    }
+
+    /**
+     * ParameterController::store attributes (+ recordingLink).
+     *
+     * @param mixed $request
+     * @return array<string, string|null>
+     */
+    public function storeAttributes($request = null)
+    {
+        return ParameterBridge::forStore($this->webform($request));
     }
 }

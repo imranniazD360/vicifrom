@@ -6,6 +6,7 @@ namespace Viciform\Tests;
 
 use PHPUnit\Framework\TestCase;
 use Viciform\Viciform;
+use Viciform\Webform\ParameterBridge;
 use Viciform\Webform\RecordingUrl;
 use Viciform\Webform\ScriptPayload;
 
@@ -144,5 +145,115 @@ final class WebformTest extends TestCase
         $this->assertArrayHasKey('SIPexten', ScriptPayload::FIELDS);
         $this->assertArrayHasKey('agent_log_id', ScriptPayload::FIELDS);
         $this->assertArrayHasKey('LOGINvarONE', ScriptPayload::FIELDS);
+    }
+
+    public function testParameterBridgeForDisplayMatchesParameterController()
+    {
+        $payload = ScriptPayload::fromArray([
+            'lead_id' => '100',
+            'phone_number' => '5559998888',
+            'server_ip' => '10.1.1.1',
+            'recording_filename' => 'rec-abc',
+            'closer' => 'CLO456',
+            'first_name' => 'Pat',
+            'uniqueid' => '9.9',
+            'SIPexten' => 'SIP/9',
+            'dispo' => 'XFER',
+        ]);
+
+        $view = ParameterBridge::forDisplay($payload, [
+            'dialer_map' => ['10.1.1.1' => 'D7'],
+            'center_map' => ['clo' => 'West Center'],
+            'currentDateTime' => '2024-08-25 12:00:00',
+            'verifiers' => ['v1'],
+        ]);
+
+        $this->assertSame('100', $view['lead_id']);
+        $this->assertSame('5559998888', $view['phone_number']);
+        $this->assertSame('Pat', $view['first_name']);
+        $this->assertSame('9.9', $view['uniqueid']);
+        $this->assertSame('SIP/9', $view['SIPexten']);
+        $this->assertSame('XFER', $view['dispo']);
+        $this->assertSame('clo', $view['closer_code']);
+        $this->assertSame('D7', $view['dialerMatch']);
+        $this->assertSame('West Center', $view['centerMatch']);
+        $this->assertSame('D7', $view['dailer_no']);
+        $this->assertSame(
+            'http://10.1.1.1/RECORDINGS/MP3/rec-abc-all.mp3',
+            $view['recording_link']
+        );
+        $this->assertSame($view['recording_link'], $view['recordingLink']);
+        $this->assertSame(['v1'], $view['verifiers']);
+        $this->assertSame('2024-08-25 12:00:00', $view['currentDateTime']);
+    }
+
+    public function testParameterBridgeResolvers()
+    {
+        $payload = ScriptPayload::fromArray([
+            'server_ip' => '8.8.8.8',
+            'closer' => 'ABC999',
+        ]);
+
+        $view = ParameterBridge::forDisplay($payload, [
+            'dialer_resolver' => function ($ip) {
+                return $ip === '8.8.8.8' ? 'DIAL-1' : null;
+            },
+            'center_resolver' => function ($code) {
+                return $code === 'abc' ? 'Center A' : null;
+            },
+        ]);
+
+        $this->assertSame('DIAL-1', $view['dialerMatch']);
+        $this->assertSame('Center A', $view['centerMatch']);
+    }
+
+    public function testParameterBridgeForStore()
+    {
+        $payload = ScriptPayload::fromArray([
+            'lead_id' => '5',
+            'agent_name' => 'Agent',
+            'server_ip' => '1.2.3.4',
+            'recording_filename' => 'f1',
+            'smoker' => 'N',
+            'age' => '40',
+            'campaign' => 'C1',
+        ]);
+
+        $data = ParameterBridge::forStore($payload);
+
+        $this->assertSame('5', $data['lead_id']);
+        $this->assertSame('Agent', $data['agent_name']);
+        $this->assertSame('N', $data['smoker']);
+        $this->assertSame(
+            'http://1.2.3.4/RECORDINGS/MP3/f1-all.mp3',
+            $data['recordingLink']
+        );
+        $this->assertSame($data['recordingLink'], $data['recording_link']);
+    }
+
+    public function testViciformDisplayAndStoreAttributesHelpers()
+    {
+        $input = [
+            'lead_id' => '77',
+            'server_ip' => '9.9.9.9',
+            'recording_filename' => 'z',
+            'closer' => 'XYZ1',
+        ];
+
+        $view = Viciform::display($input, [
+            'dialer_map' => ['9.9.9.9' => 'D9'],
+            'center_map' => ['xyz' => 'HQ'],
+        ]);
+
+        $this->assertSame('77', $view['lead_id']);
+        $this->assertSame('D9', $view['dialerMatch']);
+        $this->assertSame('HQ', $view['centerMatch']);
+
+        $store = Viciform::storeAttributes($input);
+        $this->assertSame('77', $store['lead_id']);
+        $this->assertSame(
+            'http://9.9.9.9/RECORDINGS/MP3/z-all.mp3',
+            $store['recordingLink']
+        );
     }
 }

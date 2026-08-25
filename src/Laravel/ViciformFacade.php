@@ -12,6 +12,8 @@ use Illuminate\Support\Facades\Facade;
  * @method static \Viciform\Response call(string $function, array $params = [])
  * @method static \Viciform\Config config()
  * @method static \Viciform\Webform\ScriptPayload webform(mixed $request = null)
+ * @method static array display(mixed $request = null, array $options = [])
+ * @method static array storeAttributes(mixed $request = null)
  *
  * @see \Viciform\Laravel\ViciformManager
  */

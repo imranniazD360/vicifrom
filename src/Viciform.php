@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Viciform;
 
+use Viciform\Webform\ParameterBridge;
 use Viciform\Webform\ScriptPayload;
 
 /**
@@ -84,6 +85,29 @@ final class Viciform
         }
 
         return ScriptPayload::fromRequest($request);
+    }
+
+    /**
+     * ParameterController::display view data (full script fields + dialer/center).
+     *
+     * @param mixed $request
+     * @param array $options See ParameterBridge::forDisplay()
+     * @return array<string, mixed>
+     */
+    public static function display($request = null, array $options = [])
+    {
+        return ParameterBridge::forDisplay(self::webform($request), $options);
+    }
+
+    /**
+     * ParameterController::store attribute array (includes recordingLink).
+     *
+     * @param mixed $request
+     * @return array<string, string|null>
+     */
+    public static function storeAttributes($request = null)
+    {
+        return ParameterBridge::forStore(self::webform($request));
     }
 
     /**
