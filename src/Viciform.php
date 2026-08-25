@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Viciform;
 
+use Viciform\Webform\ScriptPayload;
+
 /**
  * Lightweight static entry point for plain PHP projects.
  *
@@ -65,6 +67,23 @@ final class Viciform
     public static function call($function, array $params = [])
     {
         return self::client()->call($function, $params);
+    }
+
+    /**
+     * Parse Vicidial campaign-script / Avatar-style webform parameters.
+     *
+     * Does not require Viciform::configure() — inbound only.
+     *
+     * @param mixed $request Laravel Request, array, or null for $_GET+$_POST
+     * @return ScriptPayload
+     */
+    public static function webform($request = null)
+    {
+        if ($request === null) {
+            return ScriptPayload::fromGlobals();
+        }
+
+        return ScriptPayload::fromRequest($request);
     }
 
     /**

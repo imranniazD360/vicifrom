@@ -58,16 +58,24 @@ final class Config
             throw ViciformException::missingConfig('base_url');
         }
 
+        if (strlen($this->source) > 20) {
+            $this->source = substr($this->source, 0, 20);
+        }
+    }
+
+    /**
+     * Ensure API credentials are present before calling Vicidial.
+     *
+     * @return void
+     */
+    public function assertReady()
+    {
         if ($this->user === '') {
-            throw ViciformException::missingConfig('user');
+            throw ViciformException::missingConfig('user (set VICIFORM_USER in .env)');
         }
 
         if ($this->pass === '') {
-            throw ViciformException::missingConfig('pass');
-        }
-
-        if (strlen($this->source) > 20) {
-            $this->source = substr($this->source, 0, 20);
+            throw ViciformException::missingConfig('pass (set VICIFORM_PASS in .env)');
         }
     }
 

@@ -19,10 +19,22 @@ final class ConfigAndClientTest extends TestCase
         parent::tearDown();
     }
 
-    public function testConfigRequiresBaseUrlUserPass()
+    public function testConfigRequiresBaseUrl()
     {
         $this->expectException(ViciformException::class);
         new Config(['user' => 'u', 'pass' => 'p']);
+    }
+
+    public function testAssertReadyRequiresUserAndPass()
+    {
+        $config = new Config([
+            'base_url' => 'https://example.com/api',
+            'user' => '',
+            'pass' => '',
+        ]);
+
+        $this->expectException(ViciformException::class);
+        $config->assertReady();
     }
 
     public function testConfigTruncatesSourceTo20Chars()

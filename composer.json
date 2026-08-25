@@ -1,6 +1,6 @@
 {
     "name": "viciform/viciform",
-    "description": "Send webform leads to Vicidial via Non-Agent API. Works with Laravel and plain PHP.",
+    "description": "Vicidial PHP SDK: Non-Agent API (add_lead) + Avatar-style campaign-script webform parser and recording URLs. Laravel and plain PHP.",
     "type": "library",
     "license": "MIT",
     "keywords": [
@@ -10,14 +10,22 @@
         "laravel",
         "php",
         "call-center",
-        "add_lead"
+        "add_lead",
+        "avatar",
+        "recording",
+        "non-agent-api"
     ],
     "authors": [
         {
             "name": "Viciform",
-            "homepage": "https://github.com/imranniaz-st/viciform"
+            "homepage": "https://github.com/imranniazD360/vicifrom"
         }
     ],
+    "homepage": "https://github.com/imranniazD360/vicifrom",
+    "support": {
+        "issues": "https://github.com/imranniazD360/vicifrom/issues",
+        "source": "https://github.com/imranniazD360/vicifrom"
+    },
     "require": {
         "php": ">=7.2",
         "ext-curl": "*",

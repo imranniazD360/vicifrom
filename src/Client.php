@@ -94,6 +94,8 @@ class Client
      */
     protected function request(array $params)
     {
+        $this->config->assertReady();
+
         $url = $this->config->baseUrl() . '?' . http_build_query($params);
 
         $ch = curl_init($url);

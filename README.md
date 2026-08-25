@@ -1,12 +1,17 @@
 # Viciform
 
-PHP Composer package that sends webform leads to **Vicidial** via the Non-Agent API (`add_lead`). Works with **plain PHP** and **Laravel** (9–12).
+PHP Composer package for **Vicidial** call-center integration:
+
+1. **Outbound** — send webform leads via Non-Agent API (`add_lead` / `update_lead`)
+2. **Inbound** — parse Avatar-style campaign-script webform params (like CRM `AvatarController`) and build recording URLs
+
+Works with **plain PHP** and **Laravel** (5.8+ / 6–12).
 
 ## Requirements
 
-- PHP **7.2+** (7.2, 7.3, 7.4, 8.0, 8.1, 8.2, 8.3, 8.4+)
-- `ext-curl`
-- Vicidial API user with `modify_leads = 1` and user level ≥ 8
+- PHP **7.2+**
+- `ext-curl`, `ext-json`
+- Vicidial API user with `modify_leads = 1` and user level ≥ 8 (for outbound API)
 
 ## Install
 
@@ -14,9 +19,140 @@ PHP Composer package that sends webform leads to **Vicidial** via the Non-Agent 
 composer require viciform/viciform
 ```
 
-> Change the package name in `composer.json` to your Packagist vendor (e.g. `imran/viciform`) before publishing.
+Repository: [github.com/imranniazD360/vicifrom](https://github.com/imranniazD360/vicifrom)
 
-## Plain PHP
+---
+
+## Inbound: Avatar-style Vicidial webform
+
+Vicidial campaign scripts open your CRM URL with query params. Parse them in one call:
+
+```php
+use Viciform\Viciform;
+
+$payload = Viciform::webform($request); // Laravel Request, array, or null → $_GET+$_POST
+
+$leadId = $payload->leadId();
+$phone  = $payload->phoneNumber();
+$url    = $payload->recordingUrl();
+// http://{server_ip}/RECORDINGS/MP3/{recording_filename}-all.mp3
+```
+
+### Laravel controller (AvatarController pattern)
+
+```php
+use Viciform\Laravel\ViciformFacade as Viciform;
+
+public function create(Request $request)
+{
+    $payload = Viciform::webform($request);
+
+    return view('display', array_merge($payload->forView(), [
+        'recording_link' => $payload->recordingUrl(),
+        'closer_code' => $payload->closerCode(),
+    ]));
+}
+```
+
+See `examples/avatar-webform-controller.php` and `examples/avatar-webform-plain.php`.
+
+### Vicidial script URL example
+
+Point the campaign web form / script iframe at your route:
+
+```text
+https://crm.example.com/leads/create?lead_id=--A--lead_id--B--&phone_number=--A--phone_number--B--&first_name=--A--first_name--B--&last_name=--A--last_name--B--&list_id=--A--list_id--B--&campaign=--A--campaign--B--&server_ip=--A--server_ip--B--&recording_filename=--A--recording_filename--B--&recording_id=--A--recording_id--B--&uniqueid=--A--uniqueid--B--&SIPexten=--A--SIPexten--B--&dispo=--A--dispo--B--&agent_log_id=--A--agent_log_id--B--&closer=--A--closer--B--&vendor_id=--A--vendor_id--B--&user=--A--user--B--&phone_login=--A--phone_login--B--
+```
+
+### Recording URL
+
+```php
+use Viciform\Webform\RecordingUrl;
+
+RecordingUrl::build('10.0.0.5', '20240825-5551234567');
+// http://10.0.0.5/RECORDINGS/MP3/20240825-5551234567-all.mp3
+
+RecordingUrl::build('dialer.example.com', 'call1', [
+    'scheme' => 'https',
+    'path' => '/RECORDINGS/MP3',
+    'suffix' => '-all.mp3',
+]);
+```
+
+### Complete inbound field catalog
+
+| Field | Description |
+|-------|-------------|
+| `lead_id` | Vicidial lead ID |
+| `vendor_id` | Vendor / external lead code |
+| `list_id` | List ID |
+| `entry_list_id` | Entry list ID |
+| `source_id` | Source ID |
+| `rank` | Lead rank |
+| `owner` / `ownern` | Lead owner |
+| `called_count` | Call count |
+| `entry_date` | Entry datetime |
+| `gmt_offset_now` | GMT offset |
+| `phone_code` | Country dial code |
+| `phone_number` / `phone` | Primary phone |
+| `title` | Name title |
+| `first_name` | First name |
+| `middle_initial` | Middle initial |
+| `last_name` | Last name |
+| `address1`–`address3` | Address lines |
+| `city` / `state` / `province` | Location |
+| `postal_code` | Postal code |
+| `country_code` | Country |
+| `gender` | Gender |
+| `date_of_birth` | DOB |
+| `alt_phone` | Alternate phone |
+| `email` | Email |
+| `security_phrase` | Security phrase |
+| `comments` | Comments |
+| `user` / `pass` / `orig_pass` | Agent credentials (script-passed) |
+| `phone_login` / `original_phone_login` / `phone_pass` | Phone login |
+| `fronter` | Fronter agent |
+| `agent_id` / `agent_name` / `fullname` / `agent_email` | Agent identity |
+| `user_group` | User group |
+| `session_id` / `session_name` | Session |
+| `agent_log_id` | Agent log ID |
+| `campaign` | Campaign ID |
+| `list_name` / `list_description` | List meta |
+| `closer` / `group` / `group_a` / `channel_group` | Groups |
+| `dispo` | Disposition |
+| `INOUT` | In/out flag |
+| `SQLdate` / `epoch` | Dialer timestamps |
+| `uniqueid` | Asterisk uniqueid |
+| `call_id` / `closecallid` / `xfercallid` | Call IDs |
+| `dialed_number` / `dialed_label` | Dialed number |
+| `parked_by` | Parked-by |
+| `server_ip` / `customer_server_ip` | Dialer IPs |
+| `customer_zap_channel` | Zap channel |
+| `SIPexten` | SIP extension |
+| `camp_script` / `in_script` / `in_script_two` | Scripts |
+| `script_width` / `script_height` | Script UI size |
+| `recording_filename` / `recording_id` / `recording_link` | Recordings |
+| `user_custom_one`–`five` | Agent custom fields |
+| `preset_number_a`–`e` / `preset_dtmf_a`–`b` | Presets |
+| `did_id` / `did_extension` / `did_pattern` / `did_description` | DID |
+| `did_custom_one`–`five` | DID customs |
+| `email_row_id` | Email row |
+| `LOGINvarONE`–`FIVE` | Login vars |
+| `hide_relogin_fields` / `web_vars` | Script misc |
+| `center` / `dailer_no` / `dialer_no` / `dialer_id` | CRM dialer/center |
+| `dialername` / `centername` | Display names |
+| `smoker` / `Smoker` / `age` / `AGE` | Xfer form extras |
+| `verifier_name` / `closer_name` / `xferSubmission` | Xfer form extras |
+
+Unknown keys are kept in `$payload->extras()` and included via `toArrayWithExtras()`.
+
+Helpers: `toArray()`, `forView()`, `only([...])`, `closerCode()` (first 3 chars of `closer`, lowercased).
+
+---
+
+## Outbound: Non-Agent API (`add_lead`)
+
+### Plain PHP
 
 ```php
 use Viciform\Viciform;
@@ -28,7 +164,7 @@ Viciform::configure([
     'source'   => 'webform',
     'list_id'  => '10001',
     'phone_code' => '1',
-    'duplicate_check' => 'DUPCAMP', // optional: DUPCAMP, DUPLIST, YES
+    'duplicate_check' => 'DUPCAMP',
 ]);
 
 $response = Viciform::addLead([
@@ -49,25 +185,28 @@ if ($response->isSuccess()) {
 }
 ```
 
-Or use the client directly:
-
-```php
-use Viciform\Client;
-
-$client = new Client([/* same config */]);
-$response = $client->addLead([...]);
-```
-
-## Laravel
-
-1. Install the package (auto-discovery registers the provider & facade).
-2. Publish config (optional):
+### Laravel (auto setup)
 
 ```bash
-php artisan vendor:publish --tag=viciform-config
+composer require viciform/viciform
+
+php artisan viciform:install
+# or non-interactive:
+php artisan viciform:install \
+  --url="https://your-server/vicidial/non_agent_api.php" \
+  --user="apiuser" \
+  --pass="apipass" \
+  --list-id="10001" \
+  --force
+
+php artisan viciform:configure   # wizard
+php artisan viciform:status      # show config (password masked)
+php artisan viciform:test        # version ping
+php artisan viciform:test --phone=5551234567
+php artisan config:clear
 ```
 
-3. Set `.env`:
+### `.env` keys
 
 ```env
 VICIFORM_BASE_URL=https://your-server/vicidial/non_agent_api.php
@@ -77,23 +216,11 @@ VICIFORM_SOURCE=webform
 VICIFORM_LIST_ID=10001
 VICIFORM_PHONE_CODE=1
 VICIFORM_DUPLICATE_CHECK=DUPCAMP
+VICIFORM_TIMEOUT=15
+VICIFORM_VERIFY_SSL=true
 ```
 
-4. Use the facade or inject `Viciform\Client`:
-
-```php
-use Viciform\Laravel\ViciformFacade as Viciform;
-
-$response = Viciform::addLead($request->only([
-    'phone', 'first_name', 'last_name', 'email', 'comments',
-]));
-```
-
-See `examples/laravel-controller.php`.
-
-## Field aliases
-
-Accepted input keys map to Vicidial fields:
+### Outbound field aliases
 
 | Your form key | Vicidial field |
 |---------------|----------------|
@@ -106,39 +233,27 @@ Accepted input keys map to Vicidial fields:
 | `notes` / `comment` / `comments` | `comments` |
 | `external_id` / `vendor_id` / `vendor_lead_code` | `vendor_lead_code` |
 
-Unknown keys are forwarded as extra API parameters (useful for custom fields).
-
-## Other API calls
-
 ```php
-Viciform::updateLead([
-    'lead_id' => '12345',
-    'first_name' => 'Updated',
-]);
-
+Viciform::updateLead(['lead_id' => '12345', 'first_name' => 'Updated']);
 Viciform::call('version');
 ```
 
-## Config options
+See `examples/laravel-controller.php` for outbound webform → `add_lead`.
 
-| Key | Description |
-|-----|-------------|
-| `base_url` | Full URL to `non_agent_api.php` |
-| `user` / `pass` | API credentials |
-| `source` | Origin label (max 20 chars) |
-| `list_id` | Default list |
-| `phone_code` | Default country code |
-| `duplicate_check` | e.g. `DUPCAMP`, `DUPLIST`, `YES` |
-| `timeout` | cURL timeout seconds (default 15) |
-| `verify_ssl` | Verify TLS certificates (default true) |
+---
 
 ## Publish to Packagist
 
-1. Push this repo to GitHub.
-2. Update `"name"` in `composer.json` to `your-vendor/viciform`.
-3. Tag a release: `git tag v1.0.0 && git push --tags`
-4. Submit the repo at [packagist.org](https://packagist.org).
-5. Enable the GitHub service hook so tags auto-update.
+1. Push this repo to GitHub (already: `imranniazD360/vicifrom`).
+2. Tag a release: `git tag v1.0.0 && git push origin v1.0.0`
+3. Submit at [packagist.org/packages/submit](https://packagist.org/packages/submit)
+4. Enable the GitHub service hook so tags auto-update.
+
+Then anyone can install:
+
+```bash
+composer require viciform/viciform
+```
 
 ## Development
 

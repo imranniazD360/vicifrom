@@ -11,8 +11,9 @@ use Illuminate\Support\Facades\Facade;
  * @method static \Viciform\Response updateLead(array $data)
  * @method static \Viciform\Response call(string $function, array $params = [])
  * @method static \Viciform\Config config()
+ * @method static \Viciform\Webform\ScriptPayload webform(mixed $request = null)
  *
- * @see \Viciform\Client
+ * @see \Viciform\Laravel\ViciformManager
  */
 class ViciformFacade extends Facade
 {
@@ -21,6 +22,6 @@ class ViciformFacade extends Facade
      */
     protected static function getFacadeAccessor()
     {
-        return \Viciform\Client::class;
+        return 'viciform';
     }
 }
